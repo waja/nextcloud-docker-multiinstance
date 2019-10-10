@@ -38,6 +38,18 @@ case "$1" in
 		echo "you can run with '${DC_CALL} occ app:update --help':"
 		${DC_CALL} occ app:update --help
 		;;
+	--app-list)
+		echo "Installed app:"
+		${DC_CALL} occ app:list
+		;;
+	--app-list-shipped)
+		echo "Installed shipped app:"
+		${DC_CALL} occ app:list --shipped=true
+		;;
+	--app-list-notshipped)
+		echo "Installed not shipped app:"
+		${DC_CALL} occ app:list --shipped=false
+		;;
 	--configure-smtp-host)
 		echo "Configure SMTP server to $(hostname -f):25"
 		${DC_CALL} occ config:system:set mail_smtpmode --value=smtp
@@ -60,6 +72,9 @@ case "$1" in
 		echo "--update-list - List available application updates"
 		echo "--update-all - Update all application"
 		echo "--update-help - Output of 'occ app:update --help'"
+		echo "--app-list - List installed applications"
+		echo "--app-list-shipped - List installed shipped applications"
+		echo "--app-list-notshipped - List installed not shipped applications"
 		echo "--configure-smtp-host - Configure SMTP server to $(hostname -f):25"
 		echo "--configure-redis - Configure Memcache Backend to Redis"
 		echo "--configure-https - Configure https as default protocol"
