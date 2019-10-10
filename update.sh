@@ -20,9 +20,30 @@ config_https() {
 	${DC_CALL} occ config:system:set overwriteprotocol --value=https --type=string
 }
 
+show_help() {
+	echo "Available options:"
+	echo "--version - Show this application version"
+	echo "--app-update-list - List available application updates"
+	echo "--app-update-all - Update all application"
+	echo "--app-update-help - Output of 'occ app:update --help'"
+	echo "--app-install <app-id> - Install an application"
+	echo "--app-remove <app-id> - Remove an application"
+	echo "--app-enable <app-id> - Enable an application"
+	echo "--app-disable <app-id> - Disable an application"
+	echo "--app-update <app-id> - Update an application"
+	echo "--app-list - List installed applications"
+	echo "--app-list-shipped - List installed shipped applications"
+	echo "--app-list-notshipped - List installed not shipped applications"
+	echo "--configure-smtp-host - Configure SMTP server to $(hostname -f):25"
+	echo "--configure-redis - Configure Memcache Backend to Redis"
+	echo "--configure-https - Configure https as default protocol"
+	echo "--bootstrap - Alias for --configure-redis and --configure-https"
+}
+
 check_arg() {
 	if [ -z "$1" ]; then
 		echo "Required argument not set"
+		show_help
 		exit 1
 	fi
 }
@@ -99,23 +120,7 @@ case "$1" in
 		config_https
 		;;
 	*)
-		echo "Available options:"
-		echo "--version - Show this application version"
-		echo "--app-update-list - List available application updates"
-		echo "--app-update-all - Update all application"
-		echo "--app-update-help - Output of 'occ app:update --help'"
-		echo "--app-install <app-id> - Install an application"
-		echo "--app-remove <app-id> - Remove an application"
-		echo "--app-enable <app-id> - Enable an application"
-		echo "--app-disable <app-id> - Disable an application"
-		echo "--app-update <app-id> - Update an application"
-		echo "--app-list - List installed applications"
-		echo "--app-list-shipped - List installed shipped applications"
-		echo "--app-list-notshipped - List installed not shipped applications"
-		echo "--configure-smtp-host - Configure SMTP server to $(hostname -f):25"
-		echo "--configure-redis - Configure Memcache Backend to Redis"
-		echo "--configure-https - Configure https as default protocol"
-		echo "--bootstrap - Alias for --configure-redis and --configure-https"
+		show_help
 		;;
 esac
  
