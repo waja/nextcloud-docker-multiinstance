@@ -25,15 +25,15 @@ case "$1" in
 		echo "Application version:"
 		${DC_CALL} occ app:update --version
 		;;
-	--update-list)
+	--app-update-list)
 		echo "Available app updates:"
 		${DC_CALL} occ app:update --showonly
 		;;
-	--update-all)
+	--app-update-all)
 		echo "Updating all apps:"
 		${DC_CALL} occ app:update --all
 		;;
-	--update-help)
+	--app-update-help)
 		echo "Output of 'occ app:update --help'"
 		echo "you can run with '${DC_CALL} occ app:update --help':"
 		${DC_CALL} occ app:update --help
@@ -69,9 +69,9 @@ case "$1" in
 	*)
 		echo "Available options:"
 		echo "--version - Show this application version"
-		echo "--update-list - List available application updates"
-		echo "--update-all - Update all application"
-		echo "--update-help - Output of 'occ app:update --help'"
+		echo "--app-update-list - List available application updates"
+		echo "--app-update-all - Update all application"
+		echo "--app-update-help - Output of 'occ app:update --help'"
 		echo "--app-list - List installed applications"
 		echo "--app-list-shipped - List installed shipped applications"
 		echo "--app-list-notshipped - List installed not shipped applications"
