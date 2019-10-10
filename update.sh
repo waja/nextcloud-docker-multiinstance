@@ -23,14 +23,14 @@ config_https() {
 show_help() {
 	echo "Available options:"
 	echo "--version - Show this application version"
-	echo "--app-update-list - List available application updates"
-	echo "--app-update-all - Update all application"
-	echo "--app-update-help - Output of 'occ app:update --help'"
 	echo "--app-install <app-id> - Install an application"
 	echo "--app-remove <app-id> - Remove an application"
 	echo "--app-enable <app-id> - Enable an application"
 	echo "--app-disable <app-id> - Disable an application"
 	echo "--app-update <app-id> - Update an application"
+	echo "--app-update-list - List available application updates"
+	echo "--app-update-all - Update all application"
+	echo "--app-update-help - Output of 'occ app:update --help'"
 	echo "--app-list - List installed applications"
 	echo "--app-list-shipped - List installed shipped applications"
 	echo "--app-list-notshipped - List installed not shipped applications"
@@ -52,19 +52,6 @@ case "$1" in
 	--version)
 		echo "Application version:"
 		${DC_CALL} occ app:update --version
-		;;
-	--app-update-list)
-		echo "Available app updates:"
-		${DC_CALL} occ app:update --showonly
-		;;
-	--app-update-all)
-		echo "Updating all apps:"
-		${DC_CALL} occ app:update --all
-		;;
-	--app-update-help)
-		echo "Output of 'occ app:update --help'"
-		echo "you can run with '${DC_CALL} occ app:update --help':"
-		${DC_CALL} occ app:update --help
 		;;
 	--app-install)
 		check_arg "$2"
@@ -90,6 +77,19 @@ case "$1" in
 		check_arg "$2"
 		echo "Updating '$2':"
 		${DC_CALL} occ app:update $2
+		;;
+	--app-update-list)
+		echo "Available app updates:"
+		${DC_CALL} occ app:update --showonly
+		;;
+	--app-update-all)
+		echo "Updating all apps:"
+		${DC_CALL} occ app:update --all
+		;;
+	--app-update-help)
+		echo "Output of 'occ app:update --help'"
+		echo "you can run with '${DC_CALL} occ app:update --help':"
+		${DC_CALL} occ app:update --help
 		;;
 	--app-list)
 		echo "Installed app:"
