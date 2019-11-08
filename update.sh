@@ -12,7 +12,7 @@ config_redis() {
 	echo "Configure Memcache Backend to Redis"
 	${DC_CALL} occ config:system:set memcache.distributed --value='\OC\Memcache\Redis' --type=string
 	${DC_CALL} occ config:system:set memcache.locking --value='\OC\Memcache\Redis' --type=string
-	${DC_CALL} occ config:system:set memcache.local --value='\OC\Memcache\Redis' --type=string
+	${DC_CALL} occ config:system:set memcache.local --value='\OC\Memcache\APCu' --type=string
 }
 
 config_https() {
