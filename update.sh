@@ -55,7 +55,7 @@ case "$1" in
 		;;
 	--app-install)
 		check_arg "$2"
-		echo "Inalling app '$2':"
+		echo "Installing app '$2':"
 		${DC_CALL} occ app:install $2
 		;;
 	--app-remove)
