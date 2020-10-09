@@ -20,6 +20,12 @@ config_https() {
 	${DC_CALL} occ config:system:set overwriteprotocol --value=https --type=string
 }
 
+config_mail_domain() {
+	TRUSTED_DOMAIN="$(${DC_CALL} occ config:system:get trusted_domains | head -1 | sed 's/\r$//g')"
+	echo "Configure ${TRUSTED_DOMAIN} as mail domain"
+	${DC_CALL} occ config:system:set mail_domain --value=${TRUSTED_DOMAIN}
+}
+
 show_help() {
 	echo "Available options:"
 	echo "--version - Show this application version"
@@ -37,7 +43,8 @@ show_help() {
 	echo "--configure-smtp-host - Configure SMTP server to $(hostname -f):25"
 	echo "--configure-redis - Configure Memcache Backend to Redis"
 	echo "--configure-https - Configure https as default protocol"
-	echo "--bootstrap - Alias for --configure-redis and --configure-https"
+	echo "--configure-mail-domain - Configure mail domain to first trusted domain"
+	echo "--bootstrap - Alias for --configure-redis, --configure-https and --configure-mail-domain"
 }
 
 check_arg() {
@@ -115,9 +122,13 @@ case "$1" in
 	--configure-https)
 		config_https
 		;;
+	--configure-mail-domain)
+		config_mail_domain
+		;;
 	--bootstrap)
 		config_redis
 		config_https
+		config_mail_domain
 		;;
 	*)
 		show_help
