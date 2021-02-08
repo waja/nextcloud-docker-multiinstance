@@ -4,12 +4,15 @@ BASE_DIR="/srv/docker/nextcloud"
 while [[ ! ${NAME} || -z "${NAME}" ]]; do
         read -p 'Hostname (<host>): ' NAME
 done
+HASH="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
+MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
+MYSQL_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
+JWT_SECRET="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 
 # Provide symlink infrastructure for making use of global configrations
 mkdir -p ${BASE_DIR}/${NAME}/container.conf /etc/systemd/system/nextcloud-${NAME}.service.d
 ln -s ../../container.conf/update.sh ${BASE_DIR}/${NAME}/container.conf/update.sh
 ln -s ../../container.conf/docker-compose.yml ${BASE_DIR}/${NAME}/container.conf/docker-compose.yml
-ln -s ../../container.conf/.env ${BASE_DIR}/${NAME}/container.conf/.env
 ln -s container.conf/docker-compose.yml ${BASE_DIR}/${NAME}/
 ln -s container.conf/.env ${BASE_DIR}/${NAME}
 
@@ -21,9 +24,23 @@ version: '3'
 services:
   nextcloud:
     labels:
+      - traefik.http.routers.\${TRAEFIK_PROJECT}-\${TRAEFIK_SERVICE_01}-\${TRAEFIK_HASH}.rule=Host(\`${NAME}\`)
+      # v1.7
       - traefik.frontend.rule=Host:${NAME}
     environment:
       - DOMAIN=${NAME}
+EOF
+
+INSTANCE="$(echo ${NAME} | sed s/\\./_/g)"
+# Create .env file with needed traefik variables
+cat > ${BASE_DIR}/${NAME}/container.conf/.env <<EOF
+# tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo ''
+TRAEFIK_HASH=${HASH}
+TRAEFIK_PROJECT=nextcloud-${INSTANCE}
+TRAEFIK_SERVICE_01=nextcloud
+MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+MYSQL_PASSWORD=${MYSQL_PASSWORD}
+JWT_SECRET=${JWT_SECRET}
 EOF
 
 # Creating environment file for systemd

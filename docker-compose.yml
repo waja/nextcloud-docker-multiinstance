@@ -7,12 +7,16 @@ services:
     labels:
       - com.centurylinklabs.watchtower.enable=true
       - traefik.enable=true
-      - traefik.backend=nextcloud
       - traefik.docker.network=system_traefik
+      - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.entrypoints=websecure
+      - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.tls=true
+      - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.tls.certresolver=default
+      - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.middlewares=default-security-headers@file
+      - traefik.http.services.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.loadbalancer.server.port=8888
+      # v1.7
+      - traefik.backend=nextcloud
       - traefik.port=8888
       - traefik.default.protocol=http
-      - "traefik.frontend.redirect.regex=^(.*)/.well-known/webfinger"
-      - "traefik.frontend.redirect.replacement=$$1/public.php?service=webfinger"
     links:
       - nextcloud-db:nextcloud-db   # If using MySQL
       - nextcloud-redis:nextcloud-redis # If using Redis
