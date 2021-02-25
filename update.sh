@@ -26,6 +26,11 @@ config_mail_domain() {
 	${DC_CALL} occ config:system:set mail_domain --value=${TRUSTED_DOMAIN}
 }
 
+config_default_phone_region() {
+	echo "Configure DE as default phone region"
+	${DC_CALL} occ config:system:set default_phone_region --value='DE' --type=string
+}
+
 show_help() {
 	echo "Available options:"
 	echo "--version - Show this application version"
@@ -43,6 +48,7 @@ show_help() {
 	echo "--configure-smtp-host - Configure SMTP server to $(hostname -f):25"
 	echo "--configure-redis - Configure Memcache Backend to Redis"
 	echo "--configure-https - Configure https as default protocol"
+	echo "--configure-default-phone-region - Configure DE as default phone region"
 	echo "--configure-mail-domain - Configure mail domain to first trusted domain"
 	echo "--bootstrap - Alias for --configure-redis, --configure-https and --configure-mail-domain"
 }
@@ -122,12 +128,16 @@ case "$1" in
 	--configure-https)
 		config_https
 		;;
+	--configure-default-phone-region)
+		config_default_phone_region
+		;;
 	--configure-mail-domain)
 		config_mail_domain
 		;;
 	--bootstrap)
 		config_redis
 		config_https
+		config_default_phone_region
 		config_mail_domain
 		;;
 	*)
