@@ -50,7 +50,7 @@ show_help() {
 	echo "--configure-https - Configure https as default protocol"
 	echo "--configure-default-phone-region - Configure DE as default phone region"
 	echo "--configure-mail-domain - Configure mail domain to first trusted domain"
-	echo "--bootstrap - Alias for --configure-redis, --configure-https and --configure-mail-domain"
+	echo "--bootstrap - Alias for --configure-redis, --configure-https, --configure-default-phone-region and --configure-mail-domain"
 }
 
 check_arg() {
