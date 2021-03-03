@@ -46,6 +46,8 @@ services:
       - ./data:/data
       - ./config:/config
       - ./apps:/apps2
+      - ./logs/php:/php/logs
+      - ./logs/nginx:/nginx/logs
       - ./themes:/nextcloud/themes
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
