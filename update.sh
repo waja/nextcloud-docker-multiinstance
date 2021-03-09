@@ -31,6 +31,13 @@ config_default_phone_region() {
 	${DC_CALL} occ config:system:set default_phone_region --value='DE' --type=string
 }
 
+config_database_missing() {
+	echo "Add missing database structures"
+	${DC_CALL} occ db:add-missing-indices
+	${DC_CALL} occ db:add-missing-primary-keys
+	${DC_CALL} occ db:add-missing-columns
+}
+
 show_help() {
 	echo "Available options:"
 	echo "--version - Show this application version"
@@ -49,8 +56,9 @@ show_help() {
 	echo "--configure-redis - Configure Memcache Backend to Redis"
 	echo "--configure-https - Configure https as default protocol"
 	echo "--configure-default-phone-region - Configure DE as default phone region"
+	echo "--configure-database-missing - Add missing database structures like indexes, keys and columns"
 	echo "--configure-mail-domain - Configure mail domain to first trusted domain"
-	echo "--bootstrap - Alias for --configure-redis, --configure-https, --configure-default-phone-region and --configure-mail-domain"
+	echo "--bootstrap - Alias for --configure-redis, --configure-https, --configure-default-phone-region, --configure-database-missing and --configure-mail-domain"
 }
 
 check_arg() {
@@ -130,6 +138,9 @@ case "$1" in
 		;;
 	--configure-default-phone-region)
 		config_default_phone_region
+		;;
+	--configure-database-missing)
+		config_database_missing
 		;;
 	--configure-mail-domain)
 		config_mail_domain
