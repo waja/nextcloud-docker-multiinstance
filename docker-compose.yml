@@ -3,7 +3,7 @@ version: '3'
 
 services:
   nextcloud:
-    image: hoellen/nextcloud:22.2
+    image: ghcr.io/hoellen/nextcloud:23
     labels:
       - com.centurylinklabs.watchtower.enable=true
       - traefik.enable=true
@@ -44,8 +44,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/data
-      - ./config:/config
-      - ./apps:/apps2
+      - ./config:/nextcloud/config
+      - ./apps:/nextcloud/apps2
       - ./logs/php:/php/logs
       - ./logs/nginx:/nginx/logs
       - ./themes:/nextcloud/themes
