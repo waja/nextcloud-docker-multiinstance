@@ -33,9 +33,13 @@ config_default_phone_region() {
 
 config_database_missing() {
 	echo "Add missing database structures"
+	${DC_CALL} occ maintenance:repair
 	${DC_CALL} occ db:add-missing-indices
 	${DC_CALL} occ db:add-missing-primary-keys
 	${DC_CALL} occ db:add-missing-columns
+	${DC_CALL} occ db:convert-filecache-bigint
+	${DC_CALL} occ maintenance:mimetype:update-js
+	${DC_CALL} occ maintenance:mimetype:update-db
 }
 
 show_help() {
