@@ -49,6 +49,7 @@ services:
       - ./logs/php:/php/logs
       - ./logs/nginx:/nginx/logs
       - ./themes:/nextcloud/themes
+      - ./php-sessions:/php/session
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 

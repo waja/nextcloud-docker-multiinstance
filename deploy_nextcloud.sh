@@ -10,7 +10,8 @@ MYSQL_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 JWT_SECRET="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 
 # Provide symlink infrastructure for making use of global configrations
-mkdir -p ${BASE_DIR}/${NAME}/container.conf /etc/systemd/system/nextcloud-${NAME}.service.d
+mkdir -p ${BASE_DIR}/${NAME}/container.conf ${BASE_DIR}/${NAME}/php-sessions /etc/systemd/system/nextcloud-${NAME}.service.d
+chown 1000:1000 ${BASE_DIR}/${NAME}/php-sessions
 ln -s ../../container.conf/update.sh ${BASE_DIR}/${NAME}/container.conf/update.sh
 ln -s ../../container.conf/docker-compose.yml ${BASE_DIR}/${NAME}/container.conf/docker-compose.yml
 ln -s container.conf/docker-compose.yml ${BASE_DIR}/${NAME}/
