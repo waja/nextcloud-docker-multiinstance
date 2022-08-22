@@ -154,6 +154,9 @@ case "$1" in
 		config_https
 		config_default_phone_region
 		config_mail_domain
+		# See https://github.com/nextcloud/server/issues/32432?notification_referrer_id=NT_kwDOABYeYLIzNjI2NjI5NjU3OjE0NDk1Njg#issuecomment-1222152420
+		echo "Disable cirles app:"
+		${DC_CALL} occ app:disable circles
 		;;
 	*)
 		show_help
