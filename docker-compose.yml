@@ -13,10 +13,6 @@ services:
       - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.tls.certresolver=default
       - traefik.http.routers.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.middlewares=default-security-headers@file
       - traefik.http.services.${TRAEFIK_PROJECT}-${TRAEFIK_SERVICE_01}-${TRAEFIK_HASH}.loadbalancer.server.port=8888
-      # v1.7
-      - traefik.backend=nextcloud
-      - traefik.port=8888
-      - traefik.default.protocol=http
     links:
       - nextcloud-db:nextcloud-db   # If using MySQL
       - nextcloud-redis:nextcloud-redis # If using Redis
