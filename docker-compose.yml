@@ -3,7 +3,7 @@ version: '3'
 
 services:
   nextcloud:
-    image: ghcr.io/hoellen/nextcloud:26
+    image: ghcr.io/hoellen/nextcloud:27
     labels:
       - com.centurylinklabs.watchtower.enable=true
       - traefik.enable=true
