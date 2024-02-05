@@ -42,6 +42,11 @@ config_database_missing() {
 	${DC_CALL} occ maintenance:mimetype:update-db
 }
 
+config_maintenance_window_start() {
+	echo "Configure maintenance window start to 1am"
+	${DC_CALL} occ config:system:set maintenance_window_start --value=1 --type=integer
+}
+
 show_help() {
 	echo "Available options:"
 	echo "--version - Show this application version"
@@ -62,7 +67,8 @@ show_help() {
 	echo "--configure-default-phone-region - Configure DE as default phone region"
 	echo "--configure-database-missing - Add missing database structures like indexes, keys and columns"
 	echo "--configure-mail-domain - Configure mail domain to first trusted domain"
-	echo "--bootstrap - Alias for --configure-redis, --configure-https, --configure-default-phone-region, --configure-database-missing, --configure-database-missing and --configure-mail-domain"
+	echo "--configure-maintenance-window-start - Configure maintenance window start to '1'"
+	echo "--bootstrap - Alias for --configure-redis, --configure-https, --configure-default-phone-region, --configure-database-missing, --configure-database-missing, --configure-mail-domain and --configure-maintenance-window-start"
 }
 
 check_arg() {
@@ -149,12 +155,16 @@ case "$1" in
 	--configure-mail-domain)
 		config_mail_domain
 		;;
+	--configure-maintenance-window-start)
+		config_maintenance_window_start
+		;;
 	--bootstrap)
 		config_redis
 		config_https
 		config_default_phone_region
 		config_mail_domain
 		config_database_missing
+		config_maintenance_window_start
 		# See https://github.com/nextcloud/server/issues/32432?notification_referrer_id=NT_kwDOABYeYLIzNjI2NjI5NjU3OjE0NDk1Njg#issuecomment-1222152420
 		echo "Disable cirles app:"
 		${DC_CALL} occ app:disable circles
