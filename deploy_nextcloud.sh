@@ -24,8 +24,6 @@ ln -s container.conf/.env ${BASE_DIR}/${NAME}
 # Create instance specific docker-compose configuration
 cat > ${BASE_DIR}/${NAME}/container.conf/production.yml <<EOF
 # Inspired by https://github.com/Wonderfall/dockerfiles/tree/master/nextcloud#docker-compose-file
-version: '3'
-
 services:
   nextcloud:
     labels:
