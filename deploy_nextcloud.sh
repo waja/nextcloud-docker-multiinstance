@@ -30,8 +30,6 @@ services:
   nextcloud:
     labels:
       - traefik.http.routers.\${TRAEFIK_PROJECT}-\${TRAEFIK_SERVICE_01}-\${TRAEFIK_HASH}.rule=Host(\`${NAME}\`)
-      # v1.7
-      - traefik.frontend.rule=Host:${NAME}
     environment:
       - DOMAIN=${NAME}
 EOF
