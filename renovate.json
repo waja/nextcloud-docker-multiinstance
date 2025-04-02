@@ -8,6 +8,7 @@
       "matchPackageNames": [
         "madiadb"
       ],
+      "allowedVersions": "<11.0.0",
       "matchUpdateTypes": ["major", "minor"],
       "enabled": false
     }
