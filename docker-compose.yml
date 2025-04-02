@@ -48,7 +48,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-db:
-    image: mariadb:10.11
+    image: mariadb:10.11@sha256:3958f2df725a9ebdabd0ae6a0c0a841da8e45194b36a33d8bd83abb7dd6c034a
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     environment:
@@ -72,7 +72,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-db-backup:
-    image: fradelg/mysql-cron-backup
+    image: fradelg/mysql-cron-backup@sha256:d9b9b1514ef5f879031ea88c656c0b64acb98bb787f401c2fc3f62ed6fafb308
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     links:
@@ -102,7 +102,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-nc-backup:
-    image: waja/calcardbackup
+    image: waja/calcardbackup@sha256:ab7d3921f200048b1b5f1324babf4a141d11d392036e9624ef7ce06db4280186
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     links:
