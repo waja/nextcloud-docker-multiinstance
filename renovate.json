@@ -9,7 +9,7 @@
         "madiadb"
       ],
       "allowedVersions": "<11.0.0",
-      "enabled": false
+      "enabled": true
     }
   ],
   "extends": [
