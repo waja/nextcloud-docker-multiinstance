@@ -116,6 +116,7 @@ services:
       - NC_HOST=nextcloud
       - NC_PORT=8888
       - DB_HOST=nextcloud-db
+      - MARIADB_SSL_SKIP=true
     depends_on:
       - nextcloud-db
       - nextcloud
