@@ -1,7 +1,7 @@
 # Inspired by https://github.com/Wonderfall/dockerfiles/tree/master/nextcloud#docker-compose-file
 services:
   nextcloud:
-    image: ${NEXTCLOUD_IMAGE:-ghcr.io/hoellen/nextcloud}:${NEXTCLOUD_VERSION:-30}
+    image: ${NEXTCLOUD_IMAGE:-ghcr.io/hoellen/nextcloud}:${NEXTCLOUD_VERSION:-31}
     labels:
       - com.centurylinklabs.watchtower.enable=true
       - traefik.enable=true
