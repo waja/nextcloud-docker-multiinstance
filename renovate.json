@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "matchDatasources": [ "docker" ],
+      "matchPackageNames": [ "madiadb" ],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "enabled": true
+    }
+  ],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ]
+}
