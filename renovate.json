@@ -1,0 +1,29 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "packageRules": [
+    {
+      "matchCategories": [ "docker" ],
+      "enabled": true
+    },
+    {
+      "matchDatasources": [ "docker" ],
+      "matchPackageNames": [ "mariadb" ],
+      "matchUpdateTypes": [ "major" ],
+      "enabled": false
+    },
+    {
+      "matchDatasources": [ "docker" ],
+      "matchPackageNames": [ "mariadb" ],
+      "matchUpdateTypes": [ "minor", "patch" ]
+    },
+    {
+      "matchDatasources": [ "docker" ],
+      "groupName": "docker updates",
+      "matchPackageNames": [ "/.*/" ]
+    }
+  ]
+}
