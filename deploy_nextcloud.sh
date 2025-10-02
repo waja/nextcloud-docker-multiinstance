@@ -12,9 +12,12 @@ JWT_SECRET="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 # Provide symlink infrastructure for making use of global configurations
 
 mkdir -p ${BASE_DIR}/${NAME}/container.conf /etc/systemd/system/nextcloud-${NAME}.service.d
-for DIR in php-sessions logs/php logs/nginx apps config data themes; do
+for DIR in data/nextcloud/php-sessions data/nextcloud/logs/php data/nextcloud/logs/nginx data/nextcloud/apps data/nextcloud/config data/nextcloud/data data/nextcloud/themes; do
 	mkdir -p ${BASE_DIR}/${NAME}/${DIR}
 	chown 1000:1000 ${BASE_DIR}/${NAME}/${DIR}
+done
+for DIR in data/calcardbackup data/db-backups data/mysql data/redis; do
+	mkdir -p ${BASE_DIR}/${NAME}/${DIR}
 done
 ln -s ../../container.conf/update.sh ${BASE_DIR}/${NAME}/container.conf/update.sh
 ln -s ../../container.conf/docker-compose.yml ${BASE_DIR}/${NAME}/container.conf/docker-compose.yml

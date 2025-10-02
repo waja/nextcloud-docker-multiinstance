@@ -43,13 +43,13 @@ services:
       - system_traefik
     restart: unless-stopped
     volumes:
-      - ./data:/data
-      - ./config:/nextcloud/config
-      - ./apps:/nextcloud/apps2
-      - ./logs/php:/php/logs
-      - ./logs/nginx:/nginx/logs
-      - ./themes:/nextcloud/themes
-      - ./php-sessions:/php/session
+      - ./data/nextcloud/data:/data
+      - ./data/nextcloud/config:/nextcloud/config
+      - ./data/nextcloud/apps:/nextcloud/apps2
+      - ./data/nextcloud/logs/php:/php/logs
+      - ./data/nextcloud/logs/nginx:/nginx/logs
+      - ./data/nextcloud/themes:/nextcloud/themes
+      - ./data/nextcloud/php-sessions:/php/session
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -73,7 +73,7 @@ services:
       timeout: 5s
       retries: 3
     volumes:
-      - ./mysql:/var/lib/mysql
+      - ./data/mysql/data:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -89,7 +89,7 @@ services:
       retries: 3
       start_period: 40s
     volumes:
-      - ./redis:/data
+      - ./data/redis/data:/data
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
@@ -104,7 +104,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-      - ./db-backups:/backup
+      - ./data/db-backups/data:/backup
       #- ./post-script.sh:/assets/custom-scripts/post-script.sh
     depends_on:
       - nextcloud-db
@@ -149,8 +149,8 @@ services:
       - nextcloud
     restart: unless-stopped
     volumes:
-      - ./calcardbackup:/backup
-      - ./config:/nextcloud/config
+      - ./data/calcardbackup/data:/backup
+      - ./data/nextcloud/config:/nextcloud/config
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
