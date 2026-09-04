@@ -94,7 +94,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-db-backup:
-    image: ghcr.io/nfrastack/db-backup:4.9.2
+    image: ghcr.io/nfrastack/db-backup:5.0.0
     labels:
       # Allow watchtower to update this image
       - com.centurylinklabs.watchtower.enable=true
