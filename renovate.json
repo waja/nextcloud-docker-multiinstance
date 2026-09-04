@@ -4,6 +4,8 @@
     "config:recommended",
     ":dependencyDashboard"
   ],
+  "baseBranches": ["development"],
+  "reviewers": ["waja"],
   "packageRules": [
     {
       "matchCategories": [ "docker" ],
