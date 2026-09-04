@@ -94,7 +94,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-db-backup:
-    image: ghcr.io/nfrastack/db-backup:4.9.2
+    image: ghcr.io/nfrastack/db-backup:5.0.0
     labels:
       # Allow watchtower to update this image
       - com.centurylinklabs.watchtower.enable=true
@@ -127,6 +127,7 @@ services:
       - DB01_BACKUP_BEGIN=+1
       - DB02_TYPE=redis
       - DB02_HOST=nextcloud-redis
+      - DB02_NAME=ALL
       - DB02_BACKUP_BEGIN=+1
   nextcloud-nc-backup:
     image: waja/calcardbackup
