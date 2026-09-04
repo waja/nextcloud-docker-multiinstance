@@ -127,6 +127,7 @@ services:
       - DB01_BACKUP_BEGIN=+1
       - DB02_TYPE=redis
       - DB02_HOST=nextcloud-redis
+      - DB02_NAME=ALL
       - DB02_BACKUP_BEGIN=+1
   nextcloud-nc-backup:
     image: waja/calcardbackup
