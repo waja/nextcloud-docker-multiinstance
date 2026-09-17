@@ -1,5 +1,42 @@
 #!/bin/bash
 BASE_DIR="/srv/docker/nextcloud"
+NEXTCLOUD_VERSION=35
+
+version_check() {
+       local env_file current_version instance found=0
+
+       while IFS= read -r -d '' env_file; do
+               current_version="$(sed -n 's/^NEXTCLOUD_VERSION=\([0-9][0-9]*\)$/\1/p' "${env_file}")"
+               [[ "${current_version}" =~ ^[0-9]+$ ]] || continue
+               (( current_version < NEXTCLOUD_VERSION )) || continue
+
+               instance="${env_file%/container.conf/.env}"
+               instance="${instance##*/}"
+
+               if systemctl is-active --quiet "nextcloud-${instance}"; then
+                       echo "WARNING: ${instance} is running Nextcloud ${current_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                       found=1
+               fi
+       done < <(find "${BASE_DIR}" -mindepth 3 -maxdepth 3 \
+               -path '*/container.conf/.env' -type f -print0)
+
+       if (( found == 0 )); then
+               echo "No active instances older than Nextcloud ${NEXTCLOUD_VERSION} found."
+       fi
+}
+
+case "${1:-}" in
+       --version-check)
+               version_check
+               exit 0
+               ;;
+       "")
+               ;;
+       *)
+               echo "Usage: $0 [--version-check]" >&2
+               exit 2
+               ;;
+esac
 
 while [[ ! ${NAME} || -z "${NAME}" ]]; do
         read -p 'Hostname (<host>): ' NAME
@@ -46,7 +83,7 @@ MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 MYSQL_PASSWORD=${MYSQL_PASSWORD}
 JWT_SECRET=${JWT_SECRET}
 NEXTCLOUD_IMAGE=ghcr.io/hoellen/nextcloud
-NEXTCLOUD_VERSION=35
+NEXTCLOUD_VERSION=${NEXTCLOUD_VERSION}
 EOF
 
 # Creating environment file for systemd
