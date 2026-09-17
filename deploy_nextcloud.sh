@@ -3,7 +3,7 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local env_file current_version instance found=0
+       local env_file current_version instance systemctl_state found=0 error=0
 
        while IFS= read -r -d '' env_file; do
                current_version="$(sed -n 's/^NEXTCLOUD_VERSION=\([0-9][0-9]*\)$/\1/p' "${env_file}")"
@@ -13,12 +13,31 @@ version_check() {
                instance="${env_file%/container.conf/.env}"
                instance="${instance##*/}"
 
-               if systemctl is-active --quiet "nextcloud-${instance}"; then
-                       echo "WARNING: ${instance} is running Nextcloud ${current_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
-                       found=1
+               if systemctl_state="$(systemctl is-active "nextcloud-${instance}")"; then
+                       if [[ "${systemctl_state}" == active ]]; then
+                               echo "WARNING: ${instance} is running Nextcloud ${current_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                               found=1
+                       else
+                               echo "ERROR: systemctl returned success but reported an unexpected state for nextcloud-${instance}: ${systemctl_state}" >&2
+                               error=1
+                       fi
+               else
+                       case "${systemctl_state}" in
+                               inactive|failed|activating|deactivating)
+                                       # The unit was queried successfully and is not active.
+                                       ;;
+                               *)
+                                       echo "ERROR: unable to query nextcloud-${instance} with systemctl (state: ${systemctl_state:-unknown})." >&2
+                                       error=1
+                                       ;;
+                       esac
                fi
        done < <(find "${BASE_DIR}" -mindepth 3 -maxdepth 3 \
                -path '*/container.conf/.env' -type f -print0)
+
+       if (( error != 0 )); then
+               return 1
+       fi
 
        if (( found == 0 )); then
                echo "No active instances older than Nextcloud ${NEXTCLOUD_VERSION} found."
@@ -28,7 +47,7 @@ version_check() {
 case "${1:-}" in
        --version-check)
                version_check
-               exit 0
+               exit $?
                ;;
        "")
                ;;
