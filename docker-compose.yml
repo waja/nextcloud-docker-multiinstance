@@ -78,7 +78,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
 
   nextcloud-redis:
-    image: redis:8-alpine
+    image: valkey/valkey:9-alpine
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     restart: unless-stopped
@@ -89,7 +89,7 @@ services:
       retries: 3
       start_period: 40s
     volumes:
-      - ./data/redis/data:/data
+      - ./data/valkey/data:/data
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
