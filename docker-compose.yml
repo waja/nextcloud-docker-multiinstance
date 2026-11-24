@@ -79,6 +79,7 @@ services:
 
   nextcloud-redis:
     image: valkey/valkey:9-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     restart: unless-stopped
@@ -100,7 +101,6 @@ services:
       - com.centurylinklabs.watchtower.enable=true
     links:
       - nextcloud-db:nextcloud-db
-      - nextcloud-redis:nextcloud-redis
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -108,7 +108,6 @@ services:
       #- ./post-script.sh:/assets/custom-scripts/post-script.sh
     depends_on:
       - nextcloud-db
-      - nextcloud-redis
     restart: unless-stopped
     environment:
       - TIMEZONE=Europe/Berlin
@@ -125,10 +124,6 @@ services:
       - DB01_USER=nextcloud
       - DB01_PASS=${MYSQL_PASSWORD}
       - DB01_BACKUP_BEGIN=+1
-      - DB02_TYPE=redis
-      - DB02_HOST=nextcloud-redis
-      - DB02_NAME=ALL
-      - DB02_BACKUP_BEGIN=+1
   nextcloud-nc-backup:
     image: waja/calcardbackup
     labels:
