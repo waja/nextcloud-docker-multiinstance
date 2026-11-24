@@ -31,10 +31,10 @@ version_check() {
                        if [[ "${line}" =~ ^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*(.*)$ ]]; then
                                version_value="${BASH_REMATCH[1]}"
                                version_value="$(printf '%s\n' "${version_value}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//')"
-                               if [[ "${version_value}" =~ ^\"([0-9]+)\"$ ]]; then
-                                       version_value="${BASH_REMATCH[1]}"
-                               elif [[ "${version_value}" =~ ^\\'([0-9]+)\\'$ ]]; then
-                                       version_value="${BASH_REMATCH[1]}"
+                               if [[ "${version_value:0:1}" == '"' && "${version_value: -1}" == '"' ]]; then
+                                       version_value="${version_value:1:${#version_value}-2}"
+                               elif [[ "${version_value:0:1}" == "'" && "${version_value: -1}" == "'" ]]; then
+                                       version_value="${version_value:1:${#version_value}-2}"
                                fi
                                current_version="${version_value}"
                                ((version_count += 1))
