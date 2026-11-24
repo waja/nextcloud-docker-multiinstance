@@ -4,6 +4,19 @@ NEXTCLOUD_VERSION=35
 
 version_check() {
        local env_file current_version instance systemctl_state found=0 error=0
+       local env_files
+
+       env_files="$(mktemp)" || {
+               echo "ERROR: unable to create temporary file for version check." >&2
+               return 1
+       }
+
+       if ! find "${BASE_DIR}" -mindepth 3 -maxdepth 3 \
+               -path '*/container.conf/.env' -type f -print0 > "${env_files}"; then
+               echo "ERROR: unable to scan ${BASE_DIR} for Nextcloud instances." >&2
+               rm -f "${env_files}"
+               return 1
+       fi
 
        while IFS= read -r -d '' env_file; do
                current_version="$(sed -n 's/^NEXTCLOUD_VERSION=\([0-9][0-9]*\)$/\1/p' "${env_file}")"
@@ -23,17 +36,18 @@ version_check() {
                        fi
                else
                        case "${systemctl_state}" in
-                               inactive|failed|activating|deactivating)
-                                       # The unit was queried successfully and is not active.
+                               inactive|failed)
+                                       # The unit is not running.
                                        ;;
                                *)
-                                       echo "ERROR: unable to query nextcloud-${instance} with systemctl (state: ${systemctl_state:-unknown})." >&2
+                                       echo "ERROR: unable to determine whether nextcloud-${instance} is active (state: ${systemctl_state:-unknown})." >&2
                                        error=1
                                        ;;
                        esac
                fi
-       done < <(find "${BASE_DIR}" -mindepth 3 -maxdepth 3 \
-               -path '*/container.conf/.env' -type f -print0)
+       done < "${env_files}"
+
+       rm -f "${env_files}"
 
        if (( error != 0 )); then
                return 1
@@ -46,6 +60,10 @@ version_check() {
 
 case "${1:-}" in
        --version-check)
+               if (( $# != 1 )); then
+                       echo "Usage: $0 [--version-check]" >&2
+                       exit 2
+               fi
                version_check
                exit $?
                ;;
