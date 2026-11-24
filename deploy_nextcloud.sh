@@ -3,8 +3,8 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local env_file current_version instance systemctl_state found=0 error=0
-       local env_files
+       local env_file current_version instance container_id container_state
+       local line version_value version_count env_files found=0 error=0
 
        env_files="$(mktemp)" || {
                echo "ERROR: unable to create temporary file for version check." >&2
@@ -19,31 +19,60 @@ version_check() {
        fi
 
        while IFS= read -r -d '' env_file; do
-               current_version="$(sed -n 's/^NEXTCLOUD_VERSION=\([0-9][0-9]*\)$/\1/p' "${env_file}")"
-               [[ "${current_version}" =~ ^[0-9]+$ ]] || continue
-               (( current_version < NEXTCLOUD_VERSION )) || continue
+               if [[ ! -r "${env_file}" ]]; then
+                       echo "ERROR: unable to read ${env_file}." >&2
+                       error=1
+                       continue
+               fi
+
+               current_version=""
+               version_count=0
+               while IFS= read -r line || [[ -n "${line}" ]]; do
+                       if [[ "${line}" =~ ^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+                               version_value="${BASH_REMATCH[1]}"
+                               version_value="$(printf '%s\\n' "${version_value}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//')"
+                               case "${version_value}" in
+                                       \"*\") version_value="${version_value:1:${#version_value}-2}" ;;
+                                       \'*\') version_value="${version_value:1:${#version_value}-2}" ;;
+                               esac
+                               current_version="${version_value}"
+                               ((version_count += 1))
+                       fi
+               done < "${env_file}"
+
+               if (( version_count != 1 )) || [[ ! "${current_version}" =~ ^[0-9]+$ ]]; then
+                       echo "ERROR: ${env_file} must contain exactly one numeric NEXTCLOUD_VERSION." >&2
+                       error=1
+                       continue
+               fi
+
+               if (( 10#${current_version} >= NEXTCLOUD_VERSION )); then
+                       continue
+               fi
 
                instance="${env_file%/container.conf/.env}"
-               instance="${instance##*/}"
+               if ! container_id="$(/usr/local/bin/docker-compose \
+                       -f "${instance}/docker-compose.yml" \
+                       -f "${instance}/container.conf/production.yml" \
+                       ps -q nextcloud)"; then
+                       echo "ERROR: unable to query the Nextcloud container for ${instance##*/}." >&2
+                       error=1
+                       continue
+               fi
 
-               if systemctl_state="$(systemctl is-active "nextcloud-${instance}")"; then
-                       if [[ "${systemctl_state}" == active ]]; then
-                               echo "WARNING: ${instance} is running Nextcloud ${current_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
-                               found=1
-                       else
-                               echo "ERROR: systemctl returned success but reported an unexpected state for nextcloud-${instance}: ${systemctl_state}" >&2
-                               error=1
-                       fi
-               else
-                       case "${systemctl_state}" in
-                               inactive|failed)
-                                       # The unit is not running.
-                                       ;;
-                               *)
-                                       echo "ERROR: unable to determine whether nextcloud-${instance} is active (state: ${systemctl_state:-unknown})." >&2
-                                       error=1
-                                       ;;
-                       esac
+               [[ -n "${container_id}" ]] || continue
+               if ! container_state="$(docker inspect --format '{{.State.Status}}' "${container_id}")"; then
+                       echo "ERROR: unable to inspect the Nextcloud container for ${instance##*/}." >&2
+                       error=1
+                       continue
+               fi
+
+               if [[ "${container_state}" == running ]]; then
+                       echo "WARNING: ${instance##*/} is running Nextcloud ${current_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                       found=1
+               elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
+                       echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
+                       error=1
                fi
        done < "${env_files}"
 
@@ -78,6 +107,12 @@ esac
 while [[ ! ${NAME} || -z "${NAME}" ]]; do
         read -p 'Hostname (<host>): ' NAME
 done
+
+if [[ -e "${BASE_DIR}/${NAME}" || -L "${BASE_DIR}/${NAME}" ]]; then
+        echo "ERROR: ${BASE_DIR}/${NAME} already exists; refusing to overwrite an existing or partially created instance." >&2
+        exit 1
+fi
+
 HASH="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 MYSQL_ROOT_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
 MYSQL_PASSWORD="$(tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo '')"
