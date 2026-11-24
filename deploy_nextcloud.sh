@@ -30,7 +30,7 @@ version_check() {
                        error=1
                fi
 
-               if ! container_id="$(cd "${instance}" && timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+               if ! container_id="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \
                        -f container.conf/production.yml \
                        ps -q nextcloud)"; then
@@ -98,8 +98,8 @@ while [[ -z "${NAME:-}" ]]; do
         read -r -p 'Hostname (<host>): ' NAME
 done
 
-if (( ${#NAME} > 253 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
-        echo "ERROR: '${NAME}' is not a valid hostname." >&2
+if (( ${#NAME} > 235 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
+        echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 235-character systemd unit path limit." >&2
         exit 1
 fi
 
