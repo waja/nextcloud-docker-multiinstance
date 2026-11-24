@@ -120,7 +120,7 @@ for DIR in data/nextcloud/php-sessions data/nextcloud/logs/php data/nextcloud/lo
 	chown 1000:1000 "${BASE_DIR}/${NAME}/${DIR}"
 done
 for DIR in data/calcardbackup data/db-backups data/mysql data/redis; do
-	mkdir -p ${BASE_DIR}/${NAME}/${DIR}
+	mkdir -p "${BASE_DIR}/${NAME}/${DIR}"
 done
 ln -s ../../container.conf/update.sh "${BASE_DIR}/${NAME}/container.conf/update.sh"
 ln -s ../../container.conf/docker-compose.yml "${BASE_DIR}/${NAME}/container.conf/docker-compose.yml"
