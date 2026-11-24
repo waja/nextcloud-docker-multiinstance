@@ -28,8 +28,7 @@ For an existing deployment:
 1. Back up the Nextcloud database and application data as usual.
 2. Stop the stack (or at least Nextcloud, Redis and the database-backup service) before changing the Compose file.
 3. Deploy the updated Compose configuration. Valkey starts with a fresh data directory; the old Redis directory is not mounted.
-4. Verify that Valkey responds to `PING`, Nextcloud can access files normally, and the database-backup service successfully backs up Valkey using its existing Redis-compatible configuration.
-5. Test restoring a Valkey backup before relying on it.
+4. Verify that Valkey responds to `PING` and Nextcloud can access files normally. The database-backup container intentionally backs up only the database; Valkey cache data is not backed up.
 
 Cache and lock state can be lost when Valkey restarts. In particular, losing a lock while a request is still writing can allow concurrent operations on the same file. As with the previous Redis service, Watchtower updates remain enabled for Valkey. Because this repository does not configure the shared Watchtower instance, verify its update policy separately. An automatic update can restart Valkey during active requests; if avoiding that risk is required, exclude this container from automatic updates and perform controlled maintenance instead. For planned manual restarts, stop or drain Nextcloud requests first, then restart Valkey, verify it is healthy, and bring Nextcloud back.
 
