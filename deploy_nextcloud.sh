@@ -3,7 +3,7 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local instance env_file container_id container_info container_state container_image image_reference image_version
+       local config_dir instance env_file container_id container_info container_state container_image image_reference image_version
        local instances found=0 error=0
 
        if ! command -v timeout >/dev/null 2>&1; then
@@ -16,14 +16,15 @@ version_check() {
                return 1
        }
 
-       if ! find "${BASE_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name container.conf -print0 > "${instances}"; then
+       if ! find "${BASE_DIR}" -mindepth 2 -maxdepth 2 -type d -name container.conf -print0 > "${instances}"; then
                echo "ERROR: unable to scan ${BASE_DIR} for Nextcloud instances." >&2
                rm -f "${instances}"
                return 1
        fi
 
-       while IFS= read -r -d '' instance; do
-               env_file="${instance}/container.conf/.env"
+       while IFS= read -r -d '' config_dir; do
+               instance="${config_dir%/container.conf}"
+               env_file="${config_dir}/.env"
                if [[ ! -r "${env_file}" ]]; then
                        echo "ERROR: unable to read ${env_file}." >&2
                        error=1
