@@ -97,7 +97,7 @@ while [[ -z "${NAME:-}" ]]; do
         read -r -p 'Hostname (<host>): ' NAME
 done
 
-if (( ${#NAME} > 253 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$ ]]; then
+if (( ${#NAME} > 253 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$ ]]; then
         echo "ERROR: '${NAME}' is not a valid hostname." >&2
         exit 1
 fi
@@ -138,7 +138,7 @@ services:
       - DOMAIN=${NAME}
 EOF
 
-INSTANCE="$(printf '%s' "${NAME}" | sed 's/\\./_/g')"
+INSTANCE="$(printf '%s' "${NAME}" | sed 's/\./_/g')"
 # Create .env file with needed traefik variables
 cat > "${BASE_DIR}/${NAME}/container.conf/.env" <<EOF
 # tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo ''
