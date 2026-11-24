@@ -19,9 +19,9 @@ In your instance directory
 
 ### Redis to Valkey migration
 
-The cache service uses Valkey but keeps the service name `nextcloud-redis` and port `6379`. Existing Nextcloud `config.php` settings and the database-backup configuration (`DB02_TYPE=redis`) therefore remain unchanged.
+The cache service uses Valkey but keeps the service name `nextcloud-redis` and port `6379`. Existing Nextcloud `config.php` settings therefore remain unchanged. Valkey is a disposable cache/locking backend and is intentionally excluded from the database-backup container.
 
-Valkey uses its default persistence configuration: RDB snapshots are enabled and AOF is disabled, matching the previous Redis setup. The new data directory is `./data/valkey/data`; do not reuse the old `./data/redis/data` directory. Redis 8 RDB files (format version 17) are incompatible with Valkey 9 and cause Valkey to fail during startup. Keep the old Redis directory untouched for rollback/inspection.
+Valkey runs as an ephemeral cache: both RDB snapshots and AOF are disabled. The new data directory is `./data/valkey/data`; do not reuse the old `./data/redis/data` directory. Redis Community Edition 7.4 and later (including Redis 8) produce RDB and AOF persistence files that are incompatible with Valkey; Valkey supports the Redis OSS 7.2 persistence format. Keep the old Redis directory untouched for inspection; do not copy its persistence files into Valkey.
 
 For an existing deployment:
 
@@ -31,6 +31,6 @@ For an existing deployment:
 4. Verify that Valkey responds to `PING`, Nextcloud can access files normally, and the database-backup service successfully backs up Valkey using its existing Redis-compatible configuration.
 5. Test restoring a Valkey backup before relying on it.
 
-Cache and lock state can be lost when Valkey restarts. In particular, losing a lock while a request is still writing can allow concurrent operations on the same file. As with the previous Redis service, Watchtower updates remain enabled for Valkey. This has worked in the existing deployment, but an update can still restart Valkey during active requests. For planned manual restarts, stop or drain Nextcloud requests first, then restart Valkey, verify it is healthy, and bring Nextcloud back.
+Cache and lock state can be lost when Valkey restarts. In particular, losing a lock while a request is still writing can allow concurrent operations on the same file. As with the previous Redis service, Watchtower updates remain enabled for Valkey. Because this repository does not configure the shared Watchtower instance, verify its update policy separately. An automatic update can restart Valkey during active requests; if avoiding that risk is required, exclude this container from automatic updates and perform controlled maintenance instead. For planned manual restarts, stop or drain Nextcloud requests first, then restart Valkey, verify it is healthy, and bring Nextcloud back.
 
 To roll back, stop the stack and restore the previous Compose definition using `redis:8-alpine`, but do not mount the old `./data/redis/data` directory. Start Redis with a new, empty directory such as `./data/redis-rollback/data:/data`. Do not load the old Redis snapshot during rollback because it may contain stale cache or file-lock state.
