@@ -51,9 +51,9 @@ version_check() {
                fi
 
                instance="${env_file%/container.conf/.env}"
-               if ! container_id="$(/usr/local/bin/docker-compose \
-                       -f "${instance}/docker-compose.yml" \
-                       -f "${instance}/container.conf/production.yml" \
+               if ! container_id="$(cd "${instance}" && /usr/local/bin/docker-compose \
+                       -f docker-compose.yml \
+                       -f container.conf/production.yml \
                        ps -q nextcloud)"; then
                        echo "ERROR: unable to query the Nextcloud container for ${instance##*/}." >&2
                        error=1
