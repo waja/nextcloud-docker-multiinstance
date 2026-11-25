@@ -214,6 +214,7 @@ cat > "${BASE_DIR}/${NAME}/container.conf/.env" <<EOF
 # tr -dc A-Za-z0-9 </dev/urandom | head -c 12 ; echo ''
 TRAEFIK_HASH=${HASH}
 TRAEFIK_PROJECT=nextcloud-${INSTANCE}
+COMPOSE_PROJECT_NAME=nextcloud-${INSTANCE}
 TRAEFIK_SERVICE_01=nextcloud
 MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 MYSQL_PASSWORD=${MYSQL_PASSWORD}
