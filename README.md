@@ -19,6 +19,6 @@ In your instance directory
 
 ### Cache backend
 
-The current deployment uses Valkey as an ephemeral cache and file-locking backend. It retains the service name `nextcloud-redis` and port `6379`, so the existing Nextcloud `config.php` settings remain unchanged.
+The current deployment uses Valkey with RDB persistence as a cache and file-locking backend, and retains the Valkey backup job. It retains the service name `nextcloud-redis` and port `6379`, so the existing Nextcloud `config.php` settings remain unchanged.
 
 For details on migrating an existing Redis deployment, including coordinated migration, backups, rollback and operational precautions, see [Redis to Valkey migration](docs/redis-to-valkey-migration.md).
