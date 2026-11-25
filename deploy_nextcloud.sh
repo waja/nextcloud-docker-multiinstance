@@ -5,7 +5,7 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local config_dir instance env_file container_id container_info container_state container_image image_reference image_version
+       local config_dir instance env_file env_version container_ids container_id container_info container_state container_image image_reference image_version
        local instances found=0 error=0
 
        if ! command -v timeout >/dev/null 2>&1; then
@@ -30,9 +30,21 @@ version_check() {
                if [[ ! -r "${env_file}" ]]; then
                        echo "ERROR: unable to read ${env_file}." >&2
                        error=1
+                       continue
                fi
 
-               if ! container_id="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+               env_version="$(sed -n 's/^NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*//p' "${env_file}")"
+               env_version="${env_version#\"}"
+               env_version="${env_version%\"}"
+               env_version="${env_version#\'}"
+               env_version="${env_version%\'}"
+               if [[ -z "${env_version//[[:space:]]/}" ]]; then
+                       echo "ERROR: NEXTCLOUD_VERSION is missing or empty in ${env_file}." >&2
+                       error=1
+                       continue
+               fi
+
+               if ! container_ids="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \
                        -f container.conf/production.yml \
                        ps -q nextcloud)"; then
@@ -41,32 +53,34 @@ version_check() {
                        break
                fi
 
-               [[ -n "${container_id}" ]] || continue
-               if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
-                       echo "ERROR: unable to inspect the Nextcloud container for ${instance##*/}." >&2
-                       error=1
-                       break
-               fi
-
-               container_state="${container_info%%|*}"
-               container_image="${container_info#*|}"
-               if [[ "${container_state}" == running ]]; then
-                       image_reference="${container_image%@*}"
-                       image_version="${image_reference##*:}"
-                       if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
-                               echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
+               for container_id in ${container_ids}; do
+                       if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
+                               echo "ERROR: unable to inspect a Nextcloud container for ${instance##*/}." >&2
                                error=1
-                               continue
+                               break 2
                        fi
 
-                       if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
-                               echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
-                               found=1
+                       container_state="${container_info%%|*}"
+                       container_image="${container_info#*|}"
+                       if [[ "${container_state}" == running ]]; then
+                               image_reference="${container_image%@*}"
+                               image_version="${image_reference##*:}"
+                               if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
+                                       echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
+                                       error=1
+                                       continue
+                               fi
+
+                               if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
+                                       echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                                       found=1
+                               fi
+                       elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
+                               echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
+                               error=1
                        fi
-               elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
-                       echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
-                       error=1
-               fi
+               done
+               (( error == 0 )) || break
        done < "${instances}"
 
        rm -f "${instances}"
@@ -110,7 +124,6 @@ NAME="${NAME,,}"
 
 shopt -s nullglob
 for existing_dir in "${BASE_DIR}"/*/; do
-        [[ -d "${existing_dir}container.conf" ]] || continue
         existing_name="${existing_dir%/}"
         existing_name="${existing_name##*/}"
         if [[ "${existing_name,,}" == "${NAME,,}" ]]; then
