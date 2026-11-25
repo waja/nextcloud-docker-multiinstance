@@ -105,8 +105,12 @@ if (( ${#NAME} > 235 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Z
         exit 1
 fi
 
+# DNS hostnames are case-insensitive; use a stable lowercase instance/project name.
+NAME="${NAME,,}"
+
 shopt -s nullglob
 for existing_dir in "${BASE_DIR}"/*/; do
+        [[ -d "${existing_dir}container.conf" ]] || continue
         existing_name="${existing_dir%/}"
         existing_name="${existing_name##*/}"
         if [[ "${existing_name,,}" == "${NAME,,}" ]]; then
