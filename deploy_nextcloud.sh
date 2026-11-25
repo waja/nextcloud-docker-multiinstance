@@ -69,20 +69,7 @@ version_check() {
 
                        container_state="${container_info%%|*}"
                        container_image="${container_info#*|}"
-                       if [[ "${container_state}" == running ]]; then
-                               image_reference="${container_image%@*}"
-                               image_version="${image_reference##*:}"
-                               if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
-                                       echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
-                                       error=1
-                                       continue
-                               fi
-
-                               if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
-                                       echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
-                                       found=1
-                               fi
-                       elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
+                       if [[ "${container_state}" != running && ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
                                echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
                                error=1
                        fi
@@ -105,6 +92,35 @@ version_check() {
                        error=1
                        break
                fi
+
+               # Recheck states after the second Compose query: a previously stopped
+               # container may have started while the first inspection was running.
+               for container_id in ${container_ids_after}; do
+                       if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
+                               echo "ERROR: unable to re-inspect a Nextcloud container for ${instance##*/}." >&2
+                               error=1
+                               break 2
+                       fi
+                       container_state="${container_info%%|*}"
+                       container_image="${container_info#*|}"
+                       if [[ "${container_state}" == running ]]; then
+                               image_reference="${container_image%@*}"
+                               image_version="${image_reference##*:}"
+                               if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
+                                       echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
+                                       error=1
+                                       continue
+                               fi
+                               if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
+                                       echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                                       found=1
+                               fi
+                       elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
+                               echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
+                               error=1
+                       fi
+               done
+               (( error == 0 )) || break
        done < "${instances}"
 
        rm -f "${instances}"
