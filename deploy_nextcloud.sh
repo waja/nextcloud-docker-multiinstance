@@ -40,7 +40,7 @@ version_check() {
 
                env_version="$(sed -n 's/^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*//p' "${env_file}")"
                # Remove Compose-style inline comments before checking for an empty value.
-               env_version="$(printf '%s\\n' "${env_version}" | sed -E 's/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+               env_version="$(printf '%s\n' "${env_version}" | sed -E 's/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
                env_version="${env_version#\"}"
                env_version="${env_version%\"}"
                env_version="${env_version#\'}"
@@ -51,7 +51,7 @@ version_check() {
                        continue
                fi
 
-               if ! container_ids="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+               if ! container_ids="$(cd "${instance}" && env -u NEXTCLOUD_VERSION timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \
                        -f container.conf/production.yml \
                        ps -q nextcloud)"; then
@@ -98,8 +98,8 @@ version_check() {
                        error=1
                        break
                fi
-               container_ids_sorted="$(printf '%s\\n' "${container_ids}" | tr ' ' '\\n' | sed '/^$/d' | sort)"
-               container_ids_after_sorted="$(printf '%s\\n' "${container_ids_after}" | tr ' ' '\\n' | sed '/^$/d' | sort)"
+               container_ids_sorted="$(printf '%s\n' "${container_ids}" | tr ' ' '\n' | sed '/^$/d' | sort)"
+               container_ids_after_sorted="$(printf '%s\n' "${container_ids_after}" | tr ' ' '\n' | sed '/^$/d' | sort)"
                if [[ "${container_ids_sorted}" != "${container_ids_after_sorted}" ]]; then
                        echo "ERROR: the Nextcloud container set changed during the version check for ${instance##*/}; please run the check again." >&2
                        error=1
