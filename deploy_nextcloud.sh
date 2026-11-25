@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
@@ -36,14 +38,14 @@ version_check() {
                        ps -q nextcloud)"; then
                        echo "ERROR: unable to query the Nextcloud container for ${instance##*/}." >&2
                        error=1
-                       continue
+                       break
                fi
 
                [[ -n "${container_id}" ]] || continue
                if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
                        echo "ERROR: unable to inspect the Nextcloud container for ${instance##*/}." >&2
                        error=1
-                       continue
+                       break
                fi
 
                container_state="${container_info%%|*}"
@@ -102,6 +104,16 @@ if (( ${#NAME} > 235 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Z
         echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 235-character systemd unit path limit." >&2
         exit 1
 fi
+
+shopt -s nullglob
+for existing_dir in "${BASE_DIR}"/*/; do
+        existing_name="${existing_dir%/}"
+        existing_name="${existing_name##*/}"
+        if [[ "${existing_name,,}" == "${NAME,,}" ]]; then
+                echo "ERROR: an instance for hostname ${NAME} already exists as ${existing_name}; hostnames are case-insensitive." >&2
+                exit 1
+        fi
+done
 
 if [[ -e "${BASE_DIR}/${NAME}" || -L "${BASE_DIR}/${NAME}" ]]; then
         echo "ERROR: ${BASE_DIR}/${NAME} already exists; refusing to overwrite an existing or partially created instance." >&2
@@ -167,4 +179,4 @@ ln -s "${BASE_DIR}/${NAME}/container.conf/nextcloud-${NAME}.service" "/etc/syste
 
 # Enable unitfiles
 systemctl daemon-reload
-systemctl stop nextcloud-${NAME} && systemctl enable nextcloud-${NAME}
+systemctl enable "nextcloud-${NAME}"
