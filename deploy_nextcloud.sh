@@ -5,7 +5,7 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local config_dir instance env_file env_version container_ids container_id container_info container_state container_image image_reference image_version
+       local config_dir instance env_file env_version container_ids container_ids_after container_ids_sorted container_ids_after_sorted container_id container_info container_state container_image image_reference image_version
        local instances found=0 error=0
 
        if ! command -v timeout >/dev/null 2>&1; then
@@ -18,14 +18,19 @@ version_check() {
                return 1
        }
 
-       if ! find "${BASE_DIR}" -mindepth 2 -maxdepth 2 -type d -name container.conf -print0 > "${instances}"; then
+       if ! find "${BASE_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name container.conf -print0 > "${instances}"; then
                echo "ERROR: unable to scan ${BASE_DIR} for Nextcloud instances." >&2
                rm -f "${instances}"
                return 1
        fi
 
-       while IFS= read -r -d '' config_dir; do
-               instance="${config_dir%/container.conf}"
+       while IFS= read -r -d '' instance; do
+               config_dir="${instance}/container.conf"
+               if [[ ! -d "${config_dir}" ]]; then
+                       echo "ERROR: expected configuration directory ${config_dir} is missing." >&2
+                       error=1
+                       continue
+               fi
                env_file="${config_dir}/.env"
                if [[ ! -r "${env_file}" ]]; then
                        echo "ERROR: unable to read ${env_file}." >&2
@@ -33,7 +38,9 @@ version_check() {
                        continue
                fi
 
-               env_version="$(sed -n 's/^NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*//p' "${env_file}")"
+               env_version="$(sed -n 's/^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*//p' "${env_file}")"
+               # Remove Compose-style inline comments before checking for an empty value.
+               env_version="$(printf '%s\\n' "${env_version}" | sed -E 's/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
                env_version="${env_version#\"}"
                env_version="${env_version%\"}"
                env_version="${env_version#\'}"
@@ -81,6 +88,23 @@ version_check() {
                        fi
                done
                (( error == 0 )) || break
+
+               # Detect containers replaced while their image versions were inspected.
+               if ! container_ids_after="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+                       -f docker-compose.yml \
+                       -f container.conf/production.yml \
+                       ps -q nextcloud)"; then
+                       echo "ERROR: unable to re-check the Nextcloud container set for ${instance##*/}." >&2
+                       error=1
+                       break
+               fi
+               container_ids_sorted="$(printf '%s\\n' "${container_ids}" | tr ' ' '\\n' | sed '/^$/d' | sort)"
+               container_ids_after_sorted="$(printf '%s\\n' "${container_ids_after}" | tr ' ' '\\n' | sed '/^$/d' | sort)"
+               if [[ "${container_ids_sorted}" != "${container_ids_after_sorted}" ]]; then
+                       echo "ERROR: the Nextcloud container set changed during the version check for ${instance##*/}; please run the check again." >&2
+                       error=1
+                       break
+               fi
        done < "${instances}"
 
        rm -f "${instances}"
