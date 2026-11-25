@@ -6,14 +6,14 @@ This guide describes how to migrate an existing deployment from Redis to Valkey 
 
 The cache service runs `valkey/valkey:9-alpine` but keeps the Compose service name `nextcloud-redis` and port `6379`. Existing Nextcloud `config.php` settings therefore remain unchanged.
 
-Valkey is an ephemeral cache and file-locking backend:
+Valkey remains a persistent cache and file-locking backend, as Redis was before the migration:
 
-- RDB snapshots and AOF are disabled.
-- Each instance uses a fresh `./data/valkey/data` directory.
-- Valkey is excluded from the database-backup container; only the database is backed up there.
+- RDB snapshots are enabled (Valkey default); AOF remains disabled.
+- Each instance uses a fresh `./data/valkey/data` directory for Valkey persistence.
+- The existing Redis backup job is retained and backs up Valkey through the `nextcloud-redis` service.
 - Do not reuse the old `./data/redis/data` directory or copy persistence files into Valkey.
 
-Redis Community Edition 7.4 and later (including Redis 8) produce RDB and AOF persistence files that are incompatible with Valkey. Valkey supports the Redis OSS 7.2 persistence format. Keep the old Redis directory untouched for inspection.
+Redis Community Edition 7.4 and later (including Redis 8) produce RDB and AOF persistence files that are incompatible with Valkey. Valkey supports the Redis OSS 7.2 persistence format. Keep the old Redis directory untouched for inspection. The new Valkey instance starts with an empty data directory and creates its own RDB snapshots.
 
 ## Before you start
 
@@ -57,11 +57,11 @@ Plan a maintenance window for all instances.
    docker-compose exec nextcloud occ maintenance:mode --off
    ```
 
-   Verify for every instance that Valkey responds to `PING` and Nextcloud can access files normally. The database-backup container intentionally backs up only the database; Valkey cache data is not backed up.
+   Verify for every instance that Valkey responds to `PING`, its RDB snapshot is written to `./data/valkey/data`, the backup job completes for both MariaDB and Valkey, and Nextcloud can access files normally.
 
 ## Operational note
 
-Cache and lock state can be lost when Valkey restarts. In particular, losing a lock while a request is still writing can allow concurrent operations on the same file.
+RDB persistence protects the Valkey dataset across ordinary restarts, but it is not a substitute for the Valkey backup. As with Redis, a restart can still lose writes made since the last snapshot. In particular, losing a lock while a request is still writing can allow concurrent operations on the same file.
 
 As with the previous Redis service, Watchtower updates remain enabled for Valkey. This repository does not configure the shared Watchtower instance, so verify its update policy separately. An automatic update can restart Valkey during active requests; if avoiding that risk is required, exclude this container from automatic updates and perform controlled maintenance instead.
 
@@ -87,7 +87,7 @@ For planned manual restarts, stop or drain Nextcloud requests first, then restar
 
 4. Restore the previous shared Compose definition using `redis:8-alpine`. This change affects all instances because they share the Compose file.
 
-5. Do not mount any old `./data/redis/data` directory. Start each Redis service with its own new, empty directory (for example, `./data/redis-rollback/data:/data`). Do not load old Redis snapshots because they may contain stale cache or file-lock state.
+5. Do not mount any old `./data/redis/data` directory. Start each Redis service with its own new, empty directory (for example, `./data/redis-rollback/data:/data`). Do not load old Redis snapshots because their format may be incompatible with the current Redis version or contain stale cache or file-lock state.
 
 6. Start every instance:
 
