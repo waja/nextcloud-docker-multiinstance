@@ -5,7 +5,7 @@ BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
 version_check() {
-       local config_dir instance env_file env_version container_ids container_ids_after container_ids_sorted container_ids_after_sorted container_id container_info container_state container_image image_reference image_version
+       local config_dir instance env_file env_version container_ids container_ids_after container_ids_final container_ids_sorted container_ids_after_sorted container_ids_final_sorted container_id container_info container_state container_image image_reference image_version
        local instances found=0 error=0
 
        if ! command -v timeout >/dev/null 2>&1; then
@@ -38,9 +38,10 @@ version_check() {
                        continue
                fi
 
-               env_version="$(sed -n 's/^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=[[:space:]]*//p' "${env_file}")"
+               # Docker Compose uses the last assignment when a key is repeated.
+               env_version="$(sed -n 's/^[[:space:]]*NEXTCLOUD_VERSION[[:space:]]*=//p' "${env_file}" | tail -n 1)"
                # Remove Compose-style inline comments before checking for an empty value.
-               env_version="$(printf '%s\n' "${env_version}" | sed -E 's/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
+               env_version="$(printf '%s\n' "${env_version}" | sed -E 's/^[[:space:]]+#.*$//; s/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
                env_version="${env_version#\"}"
                env_version="${env_version%\"}"
                env_version="${env_version#\'}"
@@ -51,7 +52,7 @@ version_check() {
                        continue
                fi
 
-               if ! container_ids="$(cd "${instance}" && env -u NEXTCLOUD_VERSION timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+               if ! container_ids="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \
                        -f container.conf/production.yml \
                        ps -q nextcloud)"; then
@@ -77,7 +78,7 @@ version_check() {
                (( error == 0 )) || break
 
                # Detect containers replaced while their image versions were inspected.
-               if ! container_ids_after="$(cd "${instance}" && env -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+               if ! container_ids_after="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \
                        -f container.conf/production.yml \
                        ps -q nextcloud)"; then
@@ -121,6 +122,22 @@ version_check() {
                        fi
                done
                (( error == 0 )) || break
+
+               # Confirm that no container was created or replaced during the final inspection.
+               if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \\
+                       -f docker-compose.yml \\
+                       -f container.conf/production.yml \\
+                       ps -q nextcloud)"; then
+                       echo "ERROR: unable to confirm the final Nextcloud container set for ${instance##*/}." >&2
+                       error=1
+                       break
+               fi
+               container_ids_final_sorted="$(printf '%s\n' "${container_ids_final}" | tr ' ' '\n' | sed '/^$/d' | sort)"
+               if [[ "${container_ids_after_sorted}" != "${container_ids_final_sorted}" ]]; then
+                       echo "ERROR: the Nextcloud container set changed during the final inspection for ${instance##*/}; please run the check again." >&2
+                       error=1
+                       break
+               fi
        done < "${instances}"
 
        rm -f "${instances}"
