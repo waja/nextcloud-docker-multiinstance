@@ -124,7 +124,7 @@ version_check() {
                (( error == 0 )) || break
 
                # Confirm that no container was created or replaced during the final inspection.
-               if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \\
+               if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                        -f docker-compose.yml \\
                        -f container.conf/production.yml \\
                        ps -q nextcloud)"; then
