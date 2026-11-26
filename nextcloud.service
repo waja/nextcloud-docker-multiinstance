@@ -7,8 +7,9 @@ Requires=docker.service
 Type=oneshot                                                         
 RemainAfterExit=yes
 
+# Pull and validate the configured image before removing the currently running containers.
+ExecStartPre=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" pull
 ExecStartPre=-/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
-ExecStartPre=-/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" pull
 ExecStart=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" up -d
 ExecStop=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
 
