@@ -216,15 +216,33 @@ case "${1:-}" in
                ;;
 esac
 
-# Migrate existing per-instance hard links to symlinks so service updates
-# are picked up by every instance instead of retaining an old inode.
+# Migrate only verified legacy hard links. Detached or customized regular
+# files and independently managed symlinks must remain untouched.
+shared_service="${BASE_DIR}/container.conf/nextcloud.service"
+if [[ ! -f "${shared_service}" ]]; then
+        echo "ERROR: shared systemd service file ${shared_service} is missing; refusing to migrate instance units." >&2
+        exit 1
+fi
+
 for service_file in "${BASE_DIR}"/*/container.conf/nextcloud-*.service; do
-        [[ -e "${service_file}" ]] || continue
-        if [[ ! -L "${service_file}" ]]; then
-                rm "${service_file}"
-                ln -s ../../container.conf/nextcloud.service "${service_file}"
+        [[ -f "${service_file}" && ! -L "${service_file}" ]] || continue
+        if [[ "${service_file}" -ef "${shared_service}" ]]; then
+                service_link_tmp="${service_file}.tmp.$"
+                if ! ln -s ../../container.conf/nextcloud.service "${service_link_tmp}"; then
+                        echo "ERROR: unable to create replacement service link for ${service_file}." >&2
+                        exit 1
+                fi
+                if ! mv -Tf "${service_link_tmp}" "${service_file}"; then
+                        rm -f "${service_link_tmp}"
+                        echo "ERROR: unable to atomically replace legacy service link ${service_file}." >&2
+                        exit 1
+                fi
         fi
 done
+
+# Reload immediately so systemd picks up the shared unit before any later
+# setup step can fail.
+systemctl daemon-reload
 
 while [[ -z "${NAME:-}" ]]; do
         read -r -p 'Hostname (<host>): ' NAME
