@@ -225,8 +225,8 @@ while [[ -z "${NAME:-}" ]]; do
         read -r -p 'Hostname (<host>): ' NAME
 done
 
-if (( ${#NAME} > 233 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
-        echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 233-character limit imposed by generated Docker container names." >&2
+if (( ${#NAME} > 224 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
+        echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 224-character limit imposed by generated Docker container names." >&2
         exit 1
 fi
 
