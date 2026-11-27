@@ -9,7 +9,8 @@ NEXTCLOUD_VERSION=35
 
 version_check() {
        local config_dir instance env_file env_version container_ids container_ids_after container_ids_final container_ids_sorted container_ids_after_sorted container_ids_final_sorted container_id container_info container_state container_image image_reference image_version
-       local instances instance_warnings found=0 error=0
+       local instances found=0 error=0
+       local -a instance_warnings=()
 
        if ! command -v timeout >/dev/null 2>&1; then
                echo "ERROR: timeout is not available; cannot perform a bounded Docker check." >&2
@@ -46,7 +47,7 @@ version_check() {
                # Remove Compose-style inline comments before checking for an empty value.
                env_version="$(printf '%sif (( instance_found != 0 )); then
                                         found=1
-                                        printf '%s' "${instance_warnings}" >&2
+                                        printf '%s\n' "${instance_warnings[@]}" >&2
                                 fi
                                 breakn' "${env_version}" | sed -E 's/^[[:space:]]+#.*$//; s/[[:space:]]+#.*$//; s/^[[:space:]]+//; s/[[:space:]]+$//')"
                env_version="${env_version#\"}"
@@ -122,7 +123,7 @@ version_check() {
                local attempt instance_found container_ids_verified container_ids_verified_sorted
                for attempt in 1 2; do
                        instance_found=0
-                        instance_warnings=""
+                        instance_warnings=()
                        if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
                                -f docker-compose.yml \
                                -f container.conf/production.yml \
@@ -160,7 +161,7 @@ version_check() {
                                                continue
                                        fi
                                        if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
-                                               instance_warnings+="WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed."
+                                               instance_warnings+=("WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed.")
                                                instance_found=1
                                        fi
                                elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
