@@ -128,9 +128,14 @@ version_check() {
                        fi
                        container_ids_final_sorted="$(printf '%s\n' "${container_ids_final}" | tr ' ' '\n' | sed '/^$/d' | sort)"
                        if [[ "${container_ids_after_sorted}" != "${container_ids_final_sorted}" ]]; then
-                               echo "ERROR: the Nextcloud container set changed during the final inspection for ${instance##*/}; please run the check again." >&2
-                               error=1
-                               break
+                               if (( attempt == 2 )); then
+                                       echo "ERROR: the Nextcloud container set kept changing before inspection for ${instance##*/}; please run the check again." >&2
+                                       error=1
+                                       break
+                               fi
+                               container_ids_after="${container_ids_final}"
+                               container_ids_after_sorted="${container_ids_final_sorted}"
+                               continue
                        fi
 
                        for container_id in ${container_ids_final}; do
