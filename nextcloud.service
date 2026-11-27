@@ -7,10 +7,11 @@ Requires=docker.service
 Type=oneshot                                                         
 RemainAfterExit=yes
 
-ExecStartPre=-/usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
-ExecStartPre=-/usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" pull
-ExecStart=/usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" up -d
-ExecStop=/usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
+# Pull and validate the configured image before removing the currently running containers.
+ExecStartPre=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" pull
+ExecStartPre=-/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
+ExecStart=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" up -d
+ExecStop=/usr/bin/env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME /usr/local/bin/docker-compose -f "${WORK_DIR}/docker-compose.yml" -f "${WORK_DIR}/container.conf/production.yml" down
 
 [Install]
 WantedBy=docker.service
