@@ -179,7 +179,7 @@ version_check() {
                        if [[ "${container_ids_final_sorted}" == "${container_ids_verified_sorted}" ]]; then
                                if (( instance_found != 0 )); then
                                         found=1
-                                        printf '%s\\n' "${instance_warnings[@]}" >&2
+                                        printf '%s\n' "${instance_warnings[@]}" >&2
                                 fi
                                break
                        fi
@@ -235,7 +235,7 @@ for service_file in "${BASE_DIR}"/*/container.conf/nextcloud-*.service; do
         # has replaced the shared file and detached its former hard links.
         service_blob="$(git hash-object "${service_file}" 2>/dev/null || true)"
         if [[ "${service_file}" -ef "${shared_service}" || "${service_blob}" == "7803472292ccd5b5b3f74cb43228caf8acbd3406" ]]; then
-                service_link_tmp="${service_file}.tmp.$"
+                service_link_tmp="${service_file}.tmp.${BASHPID}"
                 if ! ln -s ../../container.conf/nextcloud.service "${service_link_tmp}"; then
                         echo "ERROR: unable to create replacement service link for ${service_file}." >&2
                         exit 1
