@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Keep hostname case conversion and character classes ASCII-only on every host.
+export LC_ALL=C
+
 BASE_DIR="/srv/docker/nextcloud"
 NEXTCLOUD_VERSION=35
 
@@ -110,32 +113,73 @@ version_check() {
                        break
                fi
 
-               # Inspect states only after the final Compose query so containers that
-               # started during the query are included in the version check.
-               for container_id in ${container_ids_final}; do
-                       if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
-                               echo "ERROR: unable to inspect a final Nextcloud container for ${instance##*/}." >&2
+               # Recheck the final container set after inspection. Retry once if a
+               # container was created or replaced while Docker inspect was running.
+               local attempt instance_found container_ids_verified container_ids_verified_sorted
+               for attempt in 1 2; do
+                       instance_found=0
+                       if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+                               -f docker-compose.yml \
+                               -f container.conf/production.yml \
+                               ps -q nextcloud)"; then
+                               echo "ERROR: unable to confirm the final Nextcloud container set for ${instance##*/}." >&2
                                error=1
                                break
                        fi
-                       container_state="${container_info%%|*}"
-                       container_image="${container_info#*|}"
-                       if [[ "${container_state}" == running ]]; then
-                               image_reference="${container_image%@*}"
-                               image_version="${image_reference##*:}"
-                               if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
-                                       echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
-                                       error=1
-                                       continue
-                               fi
-                               if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
-                                       echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
-                                       found=1
-                               fi
-                       elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
-                               echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
+                       container_ids_final_sorted="$(printf '%s\n' "${container_ids_final}" | tr ' ' '\n' | sed '/^$/d' | sort)"
+                       if [[ "${container_ids_after_sorted}" != "${container_ids_final_sorted}" ]]; then
+                               echo "ERROR: the Nextcloud container set changed during the final inspection for ${instance##*/}; please run the check again." >&2
                                error=1
+                               break
                        fi
+
+                       for container_id in ${container_ids_final}; do
+                               if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
+                                       echo "ERROR: unable to inspect a final Nextcloud container for ${instance##*/}." >&2
+                                       error=1
+                                       break
+                               fi
+                               container_state="${container_info%%|*}"
+                               container_image="${container_info#*|}"
+                               if [[ "${container_state}" == running ]]; then
+                                       image_reference="${container_image%@*}"
+                                       image_version="${image_reference##*:}"
+                                       if [[ "${image_reference}" != *:* || ! "${image_version}" =~ ^[0-9]+$ ]]; then
+                                               echo "ERROR: unable to determine the running Nextcloud version for ${instance##*/} from image ${container_image}." >&2
+                                               error=1
+                                               continue
+                                       fi
+                                       if (( 10#${image_version} < NEXTCLOUD_VERSION )); then
+                                               echo "WARNING: ${instance##*/} is running Nextcloud ${image_version}; new deployments use Nextcloud ${NEXTCLOUD_VERSION}. No migration performed." >&2
+                                               instance_found=1
+                                       fi
+                               elif [[ ! "${container_state}" =~ ^(created|exited|dead)$ ]]; then
+                                       echo "ERROR: unexpected Nextcloud container state for ${instance##*/}: ${container_state}." >&2
+                                       error=1
+                               fi
+                       done
+                       (( error == 0 )) || break
+
+                       if ! container_ids_verified="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+                               -f docker-compose.yml \
+                               -f container.conf/production.yml \
+                               ps -q nextcloud)"; then
+                               echo "ERROR: unable to verify the Nextcloud container set after inspection for ${instance##*/}." >&2
+                               error=1
+                               break
+                       fi
+                       container_ids_verified_sorted="$(printf '%s\n' "${container_ids_verified}" | tr ' ' '\n' | sed '/^$/d' | sort)"
+                       if [[ "${container_ids_final_sorted}" == "${container_ids_verified_sorted}" ]]; then
+                               (( instance_found == 0 )) || found=1
+                               break
+                       fi
+                       if (( attempt == 2 )); then
+                               echo "ERROR: the Nextcloud container set kept changing during inspection for ${instance##*/}; please run the check again." >&2
+                               error=1
+                               break
+                       fi
+                       container_ids_after="${container_ids_verified}"
+                       container_ids_after_sorted="${container_ids_verified_sorted}"
                done
                (( error == 0 )) || break
        done < "${instances}"
@@ -167,16 +211,26 @@ case "${1:-}" in
                ;;
 esac
 
+# Migrate existing per-instance hard links to symlinks so service updates
+# are picked up by every instance instead of retaining an old inode.
+for service_file in "${BASE_DIR}"/*/container.conf/nextcloud-*.service; do
+        [[ -e "${service_file}" ]] || continue
+        if [[ ! -L "${service_file}" ]]; then
+                rm "${service_file}"
+                ln -s ../../container.conf/nextcloud.service "${service_file}"
+        fi
+done
+
 while [[ -z "${NAME:-}" ]]; do
         read -r -p 'Hostname (<host>): ' NAME
 done
 
-if (( ${#NAME} > 235 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
-        echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 235-character systemd unit path limit." >&2
+if (( ${#NAME} > 233 )) || [[ ! "${NAME}" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$ ]]; then
+        echo "ERROR: '${NAME}' is not a valid hostname or exceeds the 233-character limit imposed by generated Docker container names." >&2
         exit 1
 fi
 
-# DNS hostnames are case-insensitive; use a stable lowercase instance/project name.
+# DNS hostnames are case-insensitive; LC_ALL=C above makes this ASCII-only.
 NAME="${NAME,,}"
 
 shopt -s nullglob
@@ -251,7 +305,7 @@ WorkingDirectory=/srv/docker/nextcloud/${NAME}/
 EOF
 
 # Needed symlinks for systemd
-ln "${BASE_DIR}/container.conf/nextcloud.service" "${BASE_DIR}/${NAME}/container.conf/nextcloud-${NAME}.service"
+ln -s ../../container.conf/nextcloud.service "${BASE_DIR}/${NAME}/container.conf/nextcloud-${NAME}.service"
 ln -s "/srv/docker/nextcloud/${NAME}/container.conf/environment.conf" "/etc/systemd/system/nextcloud-${NAME}.service.d/environment.conf"
 ln -s "${BASE_DIR}/${NAME}/container.conf/nextcloud-${NAME}.service" "/etc/systemd/system/nextcloud-${NAME}.service"
 
