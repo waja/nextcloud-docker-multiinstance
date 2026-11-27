@@ -94,13 +94,29 @@ version_check() {
                        break
                fi
 
-               # Recheck states after the second Compose query: a previously stopped
-               # container may have started while the first inspection was running.
-               for container_id in ${container_ids_after}; do
+               # Confirm that no container was created or replaced during the final inspection.
+               if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
+                       -f docker-compose.yml \
+                       -f container.conf/production.yml \
+                       ps -q nextcloud)"; then
+                       echo "ERROR: unable to confirm the final Nextcloud container set for ${instance##*/}." >&2
+                       error=1
+                       break
+               fi
+               container_ids_final_sorted="$(printf '%s\n' "${container_ids_final}" | tr ' ' '\n' | sed '/^$/d' | sort)"
+               if [[ "${container_ids_after_sorted}" != "${container_ids_final_sorted}" ]]; then
+                       echo "ERROR: the Nextcloud container set changed during the final inspection for ${instance##*/}; please run the check again." >&2
+                       error=1
+                       break
+               fi
+
+               # Inspect states only after the final Compose query so containers that
+               # started during the query are included in the version check.
+               for container_id in ${container_ids_final}; do
                        if ! container_info="$(timeout --kill-after=5s 30s docker inspect --format '{{.State.Status}}|{{.Config.Image}}' "${container_id}")"; then
-                               echo "ERROR: unable to re-inspect a Nextcloud container for ${instance##*/}." >&2
+                               echo "ERROR: unable to inspect a final Nextcloud container for ${instance##*/}." >&2
                                error=1
-                               break 2
+                               break
                        fi
                        container_state="${container_info%%|*}"
                        container_image="${container_info#*|}"
@@ -122,22 +138,6 @@ version_check() {
                        fi
                done
                (( error == 0 )) || break
-
-               # Confirm that no container was created or replaced during the final inspection.
-               if ! container_ids_final="$(cd "${instance}" && env -u NEXTCLOUD_VERSION -u COMPOSE_PROJECT_NAME timeout --kill-after=5s 30s /usr/local/bin/docker-compose \
-                       -f docker-compose.yml \
-                       -f container.conf/production.yml \
-                       ps -q nextcloud)"; then
-                       echo "ERROR: unable to confirm the final Nextcloud container set for ${instance##*/}." >&2
-                       error=1
-                       break
-               fi
-               container_ids_final_sorted="$(printf '%s\n' "${container_ids_final}" | tr ' ' '\n' | sed '/^$/d' | sort)"
-               if [[ "${container_ids_after_sorted}" != "${container_ids_final_sorted}" ]]; then
-                       echo "ERROR: the Nextcloud container set changed during the final inspection for ${instance##*/}; please run the check again." >&2
-                       error=1
-                       break
-               fi
        done < "${instances}"
 
        rm -f "${instances}"
@@ -189,8 +189,11 @@ for existing_dir in "${BASE_DIR}"/*/; do
         fi
 done
 
-if [[ -e "${BASE_DIR}/${NAME}" || -L "${BASE_DIR}/${NAME}" ]]; then
-        echo "ERROR: ${BASE_DIR}/${NAME} already exists; refusing to overwrite an existing or partially created instance." >&2
+# Reserve the instance directory atomically. A concurrent deployment for the
+# same hostname will fail here before it can write any instance configuration.
+mkdir -p "${BASE_DIR}"
+if ! mkdir "${BASE_DIR}/${NAME}"; then
+        echo "ERROR: ${BASE_DIR}/${NAME} already exists or is being created by another deployment; refusing to overwrite it." >&2
         exit 1
 fi
 
